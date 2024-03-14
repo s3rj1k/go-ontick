@@ -31,7 +31,7 @@ import (
 )
 
 func main() {
-	ticker := ontick.New(context.TODO(), 1*time.Second, 42)
+	ticker := ontick.New(context.TODO(), 1*time.Second, 4, "key42")
 
 	go func() {
 		time.Sleep(42 * time.Second)

@@ -2,6 +2,7 @@ package ontick
 
 import (
 	"context"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -16,18 +17,28 @@ type OnTick[T comparable] struct {
 	onceStop sync.Once
 	wg       sync.WaitGroup
 
+	semaphore chan struct{}
+
 	key T // key value for context.WithValue() to get TickTime
 }
 
-func New[T comparable](ctx context.Context, d time.Duration, key T) *OnTick[T] {
+func New[T comparable](ctx context.Context, duration time.Duration, concurrency int, key T) *OnTick[T] {
 	ctx, cancel := context.WithCancel(ctx)
 
-	return &OnTick[T]{
-		ticker: time.NewTicker(d),
+	cfg := &OnTick[T]{
+		ticker: time.NewTicker(duration),
 		ctx:    ctx,
 		cancel: cancel,
 		key:    key,
 	}
+
+	if concurrency < 1 {
+		cfg.semaphore = make(chan struct{}, runtime.NumCPU()+1)
+	} else {
+		cfg.semaphore = make(chan struct{}, concurrency)
+	}
+
+	return cfg
 }
 
 func (et *OnTick[T]) GetTickTimeFromContext(ctx context.Context) time.Time {
@@ -63,7 +74,9 @@ func (et *OnTick[T]) Do(funcs ...func(context.Context)) {
 				for {
 					select {
 					case t := <-et.ticker.C:
+						et.semaphore <- struct{}{}
 						f(context.WithValue(et.ctx, et.key, t))
+						<-et.semaphore
 					case <-et.ctx.Done():
 						return
 					}

@@ -13,15 +13,16 @@ import (
 type TickKey int
 
 const (
-	duration = 100 * time.Millisecond
-	sleep    = duration * 15
-	key      = TickKey(42)
+	duration    = 100 * time.Millisecond
+	sleep       = duration * 15
+	concurrency = 4
+	key         = TickKey(42)
 )
 
 func TestOnTick(t *testing.T) {
 	ctx := context.Background()
 
-	ticker := ontick.New(ctx, duration, key)
+	ticker := ontick.New(ctx, duration, concurrency, key)
 	defer ticker.Stop()
 
 	var wg sync.WaitGroup
@@ -61,7 +62,7 @@ func TestGetTickTimeFromContext(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 
-			ticker := ontick.New(ctx, duration, key)
+			ticker := ontick.New(ctx, duration, concurrency, key)
 			defer ticker.Stop()
 
 			time.Sleep(sleep)
@@ -81,10 +82,10 @@ func TestGetTickTimeFromContext(t *testing.T) {
 func TestStopWithContext(t *testing.T) {
 	ctx := context.Background()
 
-	onTick := ontick.New(ctx, duration, key)
+	ticker := ontick.New(ctx, duration, concurrency, key)
 	tickCount := new(atomic.Int64)
 
-	onTick.Do(func(ctx context.Context) {
+	ticker.Do(func(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
@@ -96,10 +97,10 @@ func TestStopWithContext(t *testing.T) {
 	})
 
 	time.Sleep(sleep)
-	onTick.Stop()
+	ticker.Stop()
 
 	tickCountBefore := tickCount.Load()
-	onTick.Wait()
+	ticker.Wait()
 	tickCountAfter := tickCount.Load()
 
 	if tickCountAfter != tickCountBefore {
@@ -110,18 +111,18 @@ func TestStopWithContext(t *testing.T) {
 func TestStopWithoutContext(t *testing.T) {
 	ctx := context.Background()
 
-	onTick := ontick.New(ctx, duration, key)
+	ticker := ontick.New(ctx, duration, concurrency, key)
 	tickCount := new(atomic.Int64)
 
-	onTick.Do(func(ctx context.Context) {
+	ticker.Do(func(ctx context.Context) {
 		tickCount.Add(1)
 	})
 
 	time.Sleep(sleep)
-	onTick.Stop()
+	ticker.Stop()
 
 	tickCountBefore := tickCount.Load()
-	onTick.Wait()
+	ticker.Wait()
 	tickCountAfter := tickCount.Load()
 
 	if tickCountAfter-1 != tickCountBefore {
