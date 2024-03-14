@@ -31,41 +31,34 @@ import (
 )
 
 func main() {
-	ticker := ontick.New(context.TODO(), 1*time.Second, 4, "key42")
+	var (
+		c1 atomic.Int64
+		c2 atomic.Int64
+	)
+
+	ticker := ontick.New(context.TODO(), 10*time.Millisecond, 2, "key42")
 
 	go func() {
-		time.Sleep(42 * time.Second)
+		<-time.After(42 * 10 * time.Millisecond)
 		ticker.Stop()
 	}()
 
-	var count atomic.Int64
-
 	ticker.Do(
 		func(ctx context.Context) {
-			count.Add(1)
-
-			t := ticker.GetTickTimeFromContext(ctx)
-
-			if t.Second()%2 != 0 {
-				fmt.Printf("%v [%02d] | Look at me I'm a rock star!\n", t.Format(time.UnixDate), count.Load())
-			}
+			c1.Add(1)
 		},
 		func(ctx context.Context) {
-			count.Add(1)
-
-			t := ticker.GetTickTimeFromContext(ctx)
-
-			if t.Second()%2 == 0 {
-				fmt.Printf("%v [%02d] | I have a cunning plan...\n", t.Format(time.UnixDate), count.Load())
-			}
+			c2.Add(1)
 		},
 	)
 
 	ticker.Do(func(ctx context.Context) {
-		fmt.Println("This will not be executed.")
+		panic("This will not be executed.")
 	})
 
 	ticker.Wait()
+
+	fmt.Printf("%d =? %d\n", c1.Load(), c2.Load())
 }
 ```
 
