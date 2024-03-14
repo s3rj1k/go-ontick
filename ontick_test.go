@@ -129,3 +129,24 @@ func TestStopWithoutContext(t *testing.T) {
 		t.Errorf("Expected no more ticks after Stop, but tick count changed from %d to %d", tickCountBefore, tickCountAfter)
 	}
 }
+
+func BenchmarkOnTick(b *testing.B) {
+	ctx := context.Background()
+
+	for i := 0; i < b.N; i++ {
+		var wg sync.WaitGroup
+
+		ticker := ontick.New(ctx, duration, concurrency, key)
+
+		wg.Add(1)
+
+		ticker.Do(func(ctx context.Context) {
+			wg.Done()
+		})
+
+		wg.Wait()
+
+		ticker.Stop()
+		ticker.Wait()
+	}
+}
