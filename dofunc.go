@@ -23,6 +23,7 @@ func DoFunc[T comparable](ctx context.Context, wg *sync.WaitGroup, duration time
 				return
 			case t := <-ticker.C:
 				f(context.WithValue(ctx, key, t))
+				ticker.Reset(duration)
 			}
 		}
 	}()
