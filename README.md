@@ -18,6 +18,8 @@ go get github.com/s3rj1k/go-ontick
 
 ### Example
 
+Using `ontick.New`:
+
 ```
 package main
 
@@ -60,6 +62,39 @@ func main() {
 
 	fmt.Printf("%d =? %d\n", c1.Load(), c2.Load())
 }
+```
+
+or using `ontick.DoFunc`:
+
+```
+package main
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"time"
+
+	"github.com/s3rj1k/go-ontick"
+)
+
+func main() {
+	var wg sync.WaitGroup
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	key := "It's_Ticking_Time"
+
+	ontick.DoFunc(ctx, &wg, 2*time.Second, key, func(ctx context.Context) {
+		if tt, ok := ctx.Value(key).(time.Time); ok {
+			fmt.Println("Tick at:", tt)
+		}
+	})
+
+	wg.Wait()
+}
+
 ```
 
 ## Contributing
